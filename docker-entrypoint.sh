@@ -2,7 +2,7 @@
 
 set -e
 
-gen_serv_ssl () {
+gen_serv_tls () {
     # exit if cert file exist without key
     if [ -e "${SERVER_CRT}" ]; then
        echo >&2 "You provided certificate without key, exiting..."
@@ -14,7 +14,7 @@ gen_serv_ssl () {
     openssl req -new -key "${SERVER_KEY}" -x509 -out "${SERVER_CRT}" -days 36525 -subj /CN=DOCKER/ || exit 1
 }
 
-gen_client_ssl () {
+gen_client_tls () {
     # Generate private and cert file
 
     if [ ! -e "${CLIENT_KEY}" ]; then
@@ -36,27 +36,28 @@ display_priv_key () {
 }
 
 display_keys () {
+    echo "Server certificate (${SERVER_CRT})"
+    cat "${SERVER_CRT}"
+    echo
+    echo "Client private key (${CLIENT_KEY}):"
     if [ -e "${CLIENT_KEY}" ]; then
-        echo "Client private key (${CLIENT_KEY}):"
         cat "${CLIENT_KEY}"
     else
-        echo "You provided your own client cert"
+        echo "You provided your own client cert, no private key has been generated"
     fi
     echo
     echo "Client certificate (${CLIENT_CRT})"
     cat "${CLIENT_CRT}"
     echo
-    echo "Server certificate (${SERVER_CRT})"
-    cat "${SERVER_CRT}"
 
     echo
-    echo "After copying those keys on your client, you can set your docker-cli using those options:"
+    echo "After copying these keys on your client, you can set your docker-cli using these options:"
     echo "	docker --host=\"host_ip:2376\" --tls --tlscacert=\"${SERVER_CRT}\" --tlscert=\"${CLIENT_CRT}\" --tlskey=\"${CLIENT_KEY}\""
     echo
     echo "You can also set environment variables and copy keys in ~/.docker directory:"
     echo "	export DOCKER_HOST=tcp://host_ip:2376 DOCKER_TLS=1"
     echo
-    echo "This container provides getkeys cmd to retrieve all ssl keys, use docker exec on this running container to get them"
+    echo "This container provides getkeys cmd to retrieve all TLS keys, use docker exec on this running container to get them"
     echo "Enjoy :)"
 }
 
@@ -69,14 +70,14 @@ if [ "$1" == "socat" ]; then
         exit 1
     fi
 
-    # gen ssl server key if not provided
+    # gen TLS server key if not provided
     if [ ! -e "${SERVER_CRT}" ] || [ ! -e "${SERVER_KEY}" ]; then
-        gen_serv_ssl
+        gen_serv_tls
     fi
 
-    # gen ssl client key if not provided
+    # gen TLS client key if not provided
     if [ ! -e "${CLIENT_CRT}" ]; then
-        gen_client_ssl
+        gen_client_tls
     fi
 
     # Display key and informations
